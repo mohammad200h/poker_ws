@@ -1,0 +1,181 @@
+<?xml version="1.0" ?>
+
+<%
+
+    require 'matrix'
+    require 'erb'
+    require 'yaml'
+
+    def rgb256ToDecimal(rgba)
+        r = rgba[0]/256.0
+        g = rgba[1]/256.0
+        b = rgba[2]/256.0
+        #  a stand for opacity 
+        a = rgba[3]
+
+        return [r,g,b,a]
+    end
+       
+    def degreeToRadian(degrees)
+        radians = degrees * Math::PI / 180 
+        return radians
+    end
+    def a_to_s(v)#converts array to string
+      Array(v).join(" ")
+    end
+    def point_on_a_line(pointA,pointB,t)
+        direction = {
+                     'x'=>pointA[0]-pointB[0],
+                     'y'=>pointA[1]-pointB[1],
+                     'z'=>pointA[2]-pointB[2]
+                    }
+        point_on_this_line = {
+            'x'=> pointA[0]+t*direction['x'],
+            'y'=> pointA[1]+t*direction['y'],
+            'z'=> pointA[2]+t*direction['z']
+        }
+        pos = [point_on_this_line['x'],point_on_this_line['y'],point_on_this_line['z']] 
+        return pos
+    end
+
+    def modefy_mesh_path(lib_path,mesh_path)
+        mesh_path.each do |key,value|
+          mesh_path[key] =  lib_path+"/"+value
+        #   puts mesh_path[key]
+        end
+        return mesh_path
+    end
+
+    class IndicatorLight
+        #constants
+        M_PI = 3.1415926535897931
+        attr_accessor :base
+        def initialize()
+
+            @base ={  # link
+                        'link_name'=>"base_light",
+                        'pose'=> [
+                                0,
+                                0,
+                                0,
+                                0,0,0
+                            ],
+                        # inetia 
+                        'pose_i'=> [0,0,0.09,
+                                         0,0,0],                   
+                        'mass'=> 1,
+                        'ixx'=> 0.108 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 0.108 ,'iyz'=> 0     ,'izz'=> 0.054 ,
+                        #joint
+
+
+                        #shape
+                        "v"=>{
+                            "type"=>"cylinder",
+                            "length"=>0.2,
+                            "radius"=>0.1
+                        },
+
+                     
+                        #color
+                        "color_on"=>  [0.1,0.6,0.9,1],
+                        "color_off"=> [0.1,0.6,0.9,1]
+                        
+            }  
+                
+           
+        
+        end
+    end
+
+    sim_env = "gazebo"
+
+    indicator_light =  IndicatorLight.new()
+
+
+
+      
+%>
+<robot name="indicator_light">
+
+    
+    <link name="world"/>
+
+    <joint name="fixed" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.0 0.5" />
+      <parent link="world"/>
+      <child link="<%=indicator_light.base['link_name']%>"/>
+    </joint>
+ 
+   
+    <link name ="<%=indicator_light.base['link_name']%>" >
+    
+      <inertial>
+      
+          <origin xyz="<%=a_to_s(indicator_light.base['pose_i'][0..2])%>" rpy="<%=a_to_s(indicator_light.base['pose_i'][3..-1])%>" />
+         
+          <mass value="<%=indicator_light.base['mass']%>"/>
+      
+            <inertia 
+              ixx="<%=indicator_light.base['ixx']%>" 
+              ixy="<%=indicator_light.base['ixy']%>" 
+              ixz="<%=indicator_light.base['ixz']%>" 
+              iyy="<%=indicator_light.base['iyy']%>" 
+              iyz="<%=indicator_light.base['iyz']%>" 
+              izz="<%=indicator_light.base['izz']%>"
+            />
+        </inertial>
+        
+
+
+      <visual >
+
+          <geometry>
+            <cylinder length="<%=indicator_light.base['v']['length']%>" radius= "<%=indicator_light.base['v']['radius']%>"/>    
+          </geometry>
+     
+        
+      
+      </visual>
+     
+    </link>
+
+ 
+
+
+    <!-- plugin -->
+    <gazebo>
+        <plugin name="light_control_plugin" filename="liblight_control_plugin.so"/>
+    
+    </gazebo>
+
+  
+ 
+    <gazebo reference="<%=indicator_light.base['link_name']%>">
+       <light name='lighter' type='spot'>
+           <pose frame=''>0 0 0 0 -0 0</pose>
+           <diffuse>0.5 0.5 0.5 1</diffuse>
+           <specular>0.1 0.1 0.1 1</specular>
+           <direction>0 0 -1</direction>
+           <attenuation>
+               <range>20</range>
+               <constant>0.1</constant>
+               <linear>0.01</linear>
+               <quadratic>0.001</quadratic>
+           </attenuation>
+           <cast_shadows>0</cast_shadows>
+           <spot>
+               <inner_angle>0.6</inner_angle>
+               <outer_angle>1</outer_angle>
+               <falloff>1</falloff>
+           </spot>
+     </light>
+   </gazebo>  
+   
+  
+
+ 
+ 
+
+
+</robot>

@@ -1,0 +1,112 @@
+<?xml version="1.0" ?>
+
+
+
+<sdf version='1.6'>
+  <model name="linear_actuator">
+  <static>true</static>
+    <link name ="base" >
+      <pose frame=''>0 0 0 0 0 0</pose>
+      <inertial>
+          <pose frame=''>0 0 0.09 0 0 0</pose>
+          <mass>1.8</mass>
+          <inertia>
+              <ixx>0.108</ixx>
+              <ixy>0</ixy>
+              <ixz>0</ixz>
+              <iyy>0.108</iyy>
+              <iyz>0</iyz>
+              <izz>0.054</izz>
+          </inertia>
+      </inertial>
+
+      <visual name='visual_base_link'>
+
+          <geometry>
+              <mesh>
+                 
+                  <uri>model://linear_actuator/STL/base.stl</uri>
+                  <scale>0.01 0.01 0.01</scale>
+              </mesh>
+          </geometry>
+          <material>
+              <ambient>0.1 0.6 0.9 1</ambient>
+              <diffuse>0.1 0.6 0.9 1</diffuse>
+              <specular>0.1 0.6 0.9 1</specular>
+              <emissive>0.1 0.6 0.9 0</emissive>
+          </material>
+      
+      </visual>
+      <collision name='collision_base_link'>
+    
+          <geometry>
+              <mesh>
+                  
+                  <uri>model://linear_actuator/STL/base.stl</uri>
+                  <scale>0.01 0.01 0.01</scale>
+              </mesh>
+          </geometry>
+      </collision>
+    </link>
+
+    <link name ="arm" >
+        <pose frame=''>0 0.6 0 0 0 0</pose>
+        <inertial>
+            <pose frame=''>0 0 0.09 0 0 0</pose>
+            <mass>1.8</mass>
+            <inertia>
+                <ixx>0.108</ixx>
+                <ixy>0</ixy>
+                <ixz>0</ixz>
+                <iyy>0.108</iyy>
+                <iyz>0</iyz>
+                <izz>0.054</izz>
+            </inertia>
+        </inertial>
+
+        <visual name='visual_arm_link'>
+
+            <geometry>
+                <mesh>
+              
+                    <uri>model://linear_actuator/STL/arm.stl</uri>
+                    <scale>0.01 0.01 0.01</scale>
+                </mesh>
+            </geometry>
+            <material>
+                <ambient>0.5 0.2 0.4 1</ambient>
+                <diffuse>0.5 0.2 0.4 1</diffuse>
+                <specular>0.5 0.2 0.4 1</specular>
+                <emissive>0.5 0.2 0.4 0</emissive>
+            </material>
+      
+        </visual>
+        <collision name='collision_arm_link'>
+    
+            <geometry>
+                <mesh>
+                  
+                    <uri>model://linear_actuator/STL/arm.stl</uri>
+                    <scale>0.01 0.01 0.01</scale>
+                </mesh>
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="arm_base" type="prismatic">
+        <child>arm</child>
+        <parent>base</parent>
+        <axis>
+            <xyz>0 1 0</xyz>
+        </axis>
+        <limit>
+            <upper>  0.5</upper>
+            <lower>  0</lower>
+            <effort> 1000 </effort>
+        </limit>
+    </joint>  
+
+ </model>
+  
+
+</sdf>

@@ -1,0 +1,86 @@
+<?xml version="1.0" ?>
+
+
+<robot name="indicator_light">
+
+    
+    <link name="world"/>
+
+    <joint name="fixed" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.0 0.5" />
+      <parent link="world"/>
+      <child link="base_light"/>
+    </joint>
+ 
+   
+    <link name ="base_light" >
+    
+      <inertial>
+      
+          <origin xyz="0 0 0.09" rpy="0 0 0" />
+         
+          <mass value="1"/>
+      
+            <inertia 
+              ixx="0.108" 
+              ixy="0" 
+              ixz="0" 
+              iyy="0.108" 
+              iyz="0" 
+              izz="0.054"
+            />
+        </inertial>
+        
+
+
+      <visual >
+
+          <geometry>
+            <cylinder length="0.2" radius= "0.1"/>    
+          </geometry>
+     
+        
+      
+      </visual>
+     
+    </link>
+
+ 
+
+
+    <!-- plugin -->
+    <gazebo>
+        <plugin name="light_control_plugin" filename="liblight_control_plugin.so"/>
+    
+    </gazebo>
+
+  
+ 
+    <gazebo reference="base_light">
+       <light name='lighter' type='spot'>
+           <pose frame=''>0 0 0 0 -0 0</pose>
+           <diffuse>0.5 0.5 0.5 1</diffuse>
+           <specular>0.1 0.1 0.1 1</specular>
+           <direction>0 0 -1</direction>
+           <attenuation>
+               <range>500</range>
+               <constant>0.1</constant>
+               <linear>0.01</linear>
+               <quadratic>0.001</quadratic>
+           </attenuation>
+           <cast_shadows>0</cast_shadows>
+           <spot>
+               <inner_angle>0.6</inner_angle>
+               <outer_angle>1</outer_angle>
+               <falloff>1</falloff>
+           </spot>
+     </light>
+   </gazebo>  
+   
+  
+
+ 
+ 
+
+
+</robot>

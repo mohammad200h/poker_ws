@@ -1,0 +1,436 @@
+<?xml version="1.0" ?>
+
+
+<robot name="wheeler">
+
+    <!-- gazebo -->
+    <gazebo>
+        <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_skid_steer_drive.so">
+            <updateRate>100.0</updateRate>
+            <robotNamespace>/wheeler/</robotNamespace>
+            
+            <leftFrontJoint>chasis_fl_wheel</leftFrontJoint>
+            <rightFrontJoint>chasis_fr_wheel</rightFrontJoint>
+            <leftRearJoint>chasis_bl_wheel</leftRearJoint>
+            <rightRearJoint>chasis_br_wheel</rightRearJoint>
+            
+            <wheelSeparation>0.65</wheelSeparation>
+            <wheelDiameter>0.4</wheelDiameter>
+            <robotBaseFrame></robotBaseFrame>
+            <torque>20</torque>
+            <commandTopic>cmd_vel</commandTopic>
+            <odometryTopic>odom</odometryTopic>
+            <broadcastTF>false</broadcastTF>
+        </plugin>
+    </gazebo>
+    
+    <!-- main -->
+    <link name ="chassis" >
+    
+        <inertial>
+
+              <origin xyz="0 0 0.3" rpy="0 0 0" />
+
+              <mass value="1"/>
+
+                <inertia 
+                  ixx="1.5417" 
+                  ixy="0" 
+                  ixz="0" 
+                  iyy="3.467" 
+                  iyz="0" 
+                  izz="4.742"
+                />
+        </inertial>
+        
+
+
+      <visual >
+
+          <geometry>
+              
+                <mesh   filename="package://robot_description/models/wheeler/STL/chassis.stl"  
+                        scale="0.5 0.5 0.5"
+                />
+          
+          </geometry>
+     
+
+      </visual>
+
+      <collision>
+    
+          <geometry>
+            
+                <box size="1 0.65 0.2" />
+
+          </geometry>
+          
+      </collision>
+    </link>
+
+    
+
+        <link name="bl_wheel">
+            <inertial>
+        
+                <origin xyz="0 0 0" rpy="0 0 0" />
+        
+                <mass value="1"/>
+        
+              <inertia 
+                ixx="0.002526666666667" 
+                ixy="0" 
+                ixz="0" 
+                iyy="0.002526666666667" 
+                iyz="0" 
+                izz="0.005"
+              />
+            </inertial>
+
+            <!-- Tires -->
+            <collision>
+                <origin xyz="0 0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <cylinder length="0.06" radius="0.2"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 0.09 0" 
+                    rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    
+                    <mesh   filename="package://robot_description/models/wheeler/STL/wheel.stl"  
+                        scale="0.5 0.5 0.5"
+                    />
+        
+                </geometry>
+                <material name="Black">
+                    <color rgba="0.1 0.1 0.1 1" />
+                </material>
+            </visual>
+
+            <!-- Axle -->
+            <collision>
+                <origin xyz="0 0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+
+            <!-- Hubcap -->
+            <visual>
+                <origin xyz="0 0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <box size="0.01 0.25 0.01" />
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+        </link>
+
+
+        <joint name="chasis_bl_wheel" type="continuous">
+        <origin xyz="-0.25 0.325 0" 
+                rpy="0 0 0" />
+            <child link="bl_wheel" />
+            <parent link="chassis" />
+            <axis xyz="0 1 0" 
+                    rpy="0 0 0" />
+            <limit effort="10000" velocity="1000" />
+            <joint_properties damping="1" friction="1" />
+        </joint>
+
+    
+
+        <link name="br_wheel">
+            <inertial>
+        
+                <origin xyz="0 0 0" rpy="0 0 0" />
+        
+                <mass value="1"/>
+        
+              <inertia 
+                ixx="0.002526666666667" 
+                ixy="0" 
+                ixz="0" 
+                iyy="0.002526666666667" 
+                iyz="0" 
+                izz="0.005"
+              />
+            </inertial>
+
+            <!-- Tires -->
+            <collision>
+                <origin xyz="0 -0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <cylinder length="0.06" radius="0.2"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 -0.09 0" 
+                    rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    
+                    <mesh   filename="package://robot_description/models/wheeler/STL/wheel.stl"  
+                        scale="0.5 0.5 0.5"
+                    />
+        
+                </geometry>
+                <material name="Black">
+                    <color rgba="0.1 0.1 0.1 1" />
+                </material>
+            </visual>
+
+            <!-- Axle -->
+            <collision>
+                <origin xyz="0 -0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 -0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+
+            <!-- Hubcap -->
+            <visual>
+                <origin xyz="0 -0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <box size="0.01 0.25 0.01" />
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+        </link>
+
+
+        <joint name="chasis_br_wheel" type="continuous">
+        <origin xyz="-0.25 -0.325 0" 
+                rpy="0 0 0" />
+            <child link="br_wheel" />
+            <parent link="chassis" />
+            <axis xyz="0 1 0" 
+                    rpy="0 0 0" />
+            <limit effort="10000" velocity="1000" />
+            <joint_properties damping="1" friction="1" />
+        </joint>
+
+    
+
+        <link name="fl_wheel">
+            <inertial>
+        
+                <origin xyz="0 0 0" rpy="0 0 0" />
+        
+                <mass value="1"/>
+        
+              <inertia 
+                ixx="0.002526666666667" 
+                ixy="0" 
+                ixz="0" 
+                iyy="0.002526666666667" 
+                iyz="0" 
+                izz="0.005"
+              />
+            </inertial>
+
+            <!-- Tires -->
+            <collision>
+                <origin xyz="0 0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <cylinder length="0.06" radius="0.2"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 0.09 0" 
+                    rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    
+                    <mesh   filename="package://robot_description/models/wheeler/STL/wheel.stl"  
+                        scale="0.5 0.5 0.5"
+                    />
+        
+                </geometry>
+                <material name="Black">
+                    <color rgba="0.1 0.1 0.1 1" />
+                </material>
+            </visual>
+
+            <!-- Axle -->
+            <collision>
+                <origin xyz="0 0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+
+            <!-- Hubcap -->
+            <visual>
+                <origin xyz="0 0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <box size="0.01 0.25 0.01" />
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+        </link>
+
+
+        <joint name="chasis_fl_wheel" type="continuous">
+        <origin xyz="0.25 0.325 0" 
+                rpy="0 0 0" />
+            <child link="fl_wheel" />
+            <parent link="chassis" />
+            <axis xyz="0 1 0" 
+                    rpy="0 0 0" />
+            <limit effort="10000" velocity="1000" />
+            <joint_properties damping="1" friction="1" />
+        </joint>
+
+    
+
+        <link name="fr_wheel">
+            <inertial>
+        
+                <origin xyz="0 0 0" rpy="0 0 0" />
+        
+                <mass value="1"/>
+        
+              <inertia 
+                ixx="0.002526666666667" 
+                ixy="0" 
+                ixz="0" 
+                iyy="0.002526666666667" 
+                iyz="0" 
+                izz="0.005"
+              />
+            </inertial>
+
+            <!-- Tires -->
+            <collision>
+                <origin xyz="0 -0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <cylinder length="0.06" radius="0.2"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 -0.09 0" 
+                    rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    
+                    <mesh   filename="package://robot_description/models/wheeler/STL/wheel.stl"  
+                        scale="0.5 0.5 0.5"
+                    />
+        
+                </geometry>
+                <material name="Black">
+                    <color rgba="0.1 0.1 0.1 1" />
+                </material>
+            </visual>
+
+            <!-- Axle -->
+            <collision>
+                <origin xyz="0 -0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="0 -0.03 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                     <cylinder length="0.12" radius="0.04"/>
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+
+            <!-- Hubcap -->
+            <visual>
+                <origin xyz="0 -0.09 0" 
+                        rpy="1.5707963267948966 0 0" />
+                <geometry>
+                    <box size="0.01 0.25 0.01" />
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+        </link>
+
+
+        <joint name="chasis_fr_wheel" type="continuous">
+        <origin xyz="0.25 -0.325 0" 
+                rpy="0 0 0" />
+            <child link="fr_wheel" />
+            <parent link="chassis" />
+            <axis xyz="0 1 0" 
+                    rpy="0 0 0" />
+            <limit effort="10000" velocity="1000" />
+            <joint_properties damping="1" friction="1" />
+        </joint>
+
+    
+    
+
+  
+
+
+  
+
+ 
+ 
+
+
+</robot>

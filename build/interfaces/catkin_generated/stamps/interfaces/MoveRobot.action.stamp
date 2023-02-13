@@ -1,0 +1,10 @@
+#goal
+
+float64 vel
+bool deployed
+---
+#result
+string state
+---
+#feedback
+float64 percentage

@@ -1,0 +1,255 @@
+<?xml version="1.0" ?>
+
+<%
+
+    require 'matrix'
+    require 'erb'
+    require 'yaml'
+
+    def rgb256ToDecimal(rgba)
+        r = rgba[0]/256.0
+        g = rgba[1]/256.0
+        b = rgba[2]/256.0
+        #  a stand for opacity 
+        a = rgba[3]
+
+        return [r,g,b,a]
+    end
+       
+    def degreeToRadian(degrees)
+        radians = degrees * Math::PI / 180 
+        return radians
+    end
+    def a_to_s(v)#converts array to string
+      Array(v).join(" ")
+    end
+    def point_on_a_line(pointA,pointB,t)
+        direction = {
+                     'x'=>pointA[0]-pointB[0],
+                     'y'=>pointA[1]-pointB[1],
+                     'z'=>pointA[2]-pointB[2]
+                    }
+        point_on_this_line = {
+            'x'=> pointA[0]+t*direction['x'],
+            'y'=> pointA[1]+t*direction['y'],
+            'z'=> pointA[2]+t*direction['z']
+        }
+        pos = [point_on_this_line['x'],point_on_this_line['y'],point_on_this_line['z']] 
+        return pos
+    end
+
+    def modefy_mesh_path(lib_path,mesh_path)
+        mesh_path.each do |key,value|
+          mesh_path[key] =  lib_path+"/"+value
+        #   puts mesh_path[key]
+        end
+        return mesh_path
+    end
+
+    class LinerarActuator
+        #constants
+        M_PI = 3.1415926535897931
+        attr_accessor :base,:arm,:mesh
+        def initialize(sim_env,pose)
+
+            @base ={  # link
+                        'link_name'=>"base",
+                        'pose'=> [
+                                pose[0]+0,
+                                pose[1]+0,
+                                pose[2]+0,
+                                0,0,0
+                            ],
+                        # inetia 
+                        'pose_i'=> [0,0,0.09,
+                                         0,0,0],                   
+                        'mass'=> 1.8,
+                        'ixx'=> 0.108 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 0.108 ,'iyz'=> 0     ,'izz'=> 0.054 ,
+                        #joint
+                     
+                        #color
+                        "ambient"=>  [0.1,0.6,0.9,1],
+                        "diffuse"=>  [0.1,0.6,0.9,1],
+                        "specular"=> [0.1,0.6,0.9,1],
+                        "emissive"=> [0.1,0.6,0.9,0]
+            }  
+            @arm ={  # link
+                        'link_name'=>"arm",
+                        'pose'=> [
+                            @base["pose"][0]+0,
+                            @base["pose"][1]+0.6,
+                            @base["pose"][2]+0,
+                            0,0,0
+                        ],
+                        # inetia 
+                        'pose_i'=> [0,0,0.09,
+                                         0,0,0],                   
+                        'mass'=> 1.8,
+                        'ixx'=> 0.108 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 0.108 ,'iyz'=> 0     ,'izz'=> 0.054 ,
+                        #joint
+                        "p_name" =>"base",
+                        "j_name" =>"arm_base",
+                        "j_type" =>'prismatic',
+                        "j_limit"=>[0,0.5],
+                        "j_effort"=>1000,
+                        "axis_xyz"=>[0,1,0],
+                        #color
+                        "ambient"=>  [0.5,0.2,0.4,1],
+                        "diffuse"=>  [0.5,0.2,0.4,1],
+                        "specular"=> [0.5,0.2,0.4,1],
+                        "emissive"=> [0.5,0.2,0.4,0]
+            } 
+            
+            
+            path_prefix = {
+                "gazebo"=>"model://linear_actuator/STL/",
+                "pybullet"=>"./STL/"
+            }
+           
+            @mesh = {
+                "base"=>{
+                    "visual"=>"base.stl",
+                    "collision"=>"base.stl"
+                },
+                "arm"=>{
+                    "visual"=>"arm.stl",
+                    "collision"=>"arm.stl"
+                }
+            }
+
+            if sim_env =="gazebo"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["gazebo"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["gazebo"]+@mesh[link]["collision"]
+                end
+         
+            elsif sim_env =="pybullet"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["pybullet"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["pybullet"]+@mesh[link]["collision"]
+                end
+            end
+           
+        
+        end
+    end
+
+    sim_env = "gazebo"
+    pose = [0,0,0]
+    linear_actuator =  LinerarActuator.new(sim_env,pose)
+
+
+
+      
+%>
+
+<sdf version='1.6'>
+  <model name="linear_actuator">
+  <static>true</static>
+    <link name ="<%=linear_actuator.base['link_name']%>" >
+      <pose frame=''><%=a_to_s(linear_actuator.base['pose'])%></pose>
+      <inertial>
+          <pose frame=''><%=a_to_s(linear_actuator.base['pose_i'])%></pose>
+          <mass><%=linear_actuator.base['mass']%></mass>
+          <inertia>
+              <ixx><%=linear_actuator.base['ixx']%></ixx>
+              <ixy><%=linear_actuator.base['ixy']%></ixy>
+              <ixz><%=linear_actuator.base['ixz']%></ixz>
+              <iyy><%=linear_actuator.base['iyy']%></iyy>
+              <iyz><%=linear_actuator.base['iyz']%></iyz>
+              <izz><%=linear_actuator.base['izz']%></izz>
+          </inertia>
+      </inertial>
+
+      <visual name='visual_base_link'>
+
+          <geometry>
+              <mesh>
+                 
+                  <uri><%=linear_actuator.mesh["base"]["visual"]%></uri>
+                  <scale>0.01 0.01 0.01</scale>
+              </mesh>
+          </geometry>
+          <material>
+              <ambient><%=a_to_s(linear_actuator.base['ambient'])%></ambient>
+              <diffuse><%=a_to_s(linear_actuator.base['diffuse'])%></diffuse>
+              <specular><%=a_to_s(linear_actuator.base['specular'])%></specular>
+              <emissive><%=a_to_s(linear_actuator.base['emissive'])%></emissive>
+          </material>
+      
+      </visual>
+      <collision name='collision_base_link'>
+    
+          <geometry>
+              <mesh>
+                  
+                  <uri><%=linear_actuator.mesh["base"]["collision"]%></uri>
+                  <scale>0.01 0.01 0.01</scale>
+              </mesh>
+          </geometry>
+      </collision>
+    </link>
+
+    <link name ="<%=linear_actuator.arm['link_name']%>" >
+        <pose frame=''><%=a_to_s(linear_actuator.arm['pose'])%></pose>
+        <inertial>
+            <pose frame=''><%=a_to_s(linear_actuator.arm['pose_i'])%></pose>
+            <mass><%=linear_actuator.arm['mass']%></mass>
+            <inertia>
+                <ixx><%=linear_actuator.arm['ixx']%></ixx>
+                <ixy><%=linear_actuator.arm['ixy']%></ixy>
+                <ixz><%=linear_actuator.arm['ixz']%></ixz>
+                <iyy><%=linear_actuator.arm['iyy']%></iyy>
+                <iyz><%=linear_actuator.arm['iyz']%></iyz>
+                <izz><%=linear_actuator.arm['izz']%></izz>
+            </inertia>
+        </inertial>
+
+        <visual name='visual_arm_link'>
+
+            <geometry>
+                <mesh>
+              
+                    <uri><%=linear_actuator.mesh["arm"]["visual"]%></uri>
+                    <scale>0.01 0.01 0.01</scale>
+                </mesh>
+            </geometry>
+            <material>
+                <ambient><%=a_to_s(linear_actuator.arm['ambient'])%></ambient>
+                <diffuse><%=a_to_s(linear_actuator.arm['diffuse'])%></diffuse>
+                <specular><%=a_to_s(linear_actuator.arm['specular'])%></specular>
+                <emissive><%=a_to_s(linear_actuator.arm['emissive'])%></emissive>
+            </material>
+      
+        </visual>
+        <collision name='collision_arm_link'>
+    
+            <geometry>
+                <mesh>
+                  
+                    <uri><%=linear_actuator.mesh["arm"]["collision"]%></uri>
+                    <scale>0.01 0.01 0.01</scale>
+                </mesh>
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="<%=linear_actuator.arm['j_name']%>" type="<%=linear_actuator.arm['j_type']%>">
+        <child><%=linear_actuator.arm['link_name']%></child>
+        <parent><%=linear_actuator.arm['p_name']%></parent>
+        <axis>
+            <xyz><%=a_to_s(linear_actuator.arm['axis_xyz'])%></xyz>
+        </axis>
+        <limit>
+            <upper>  <%=linear_actuator.arm['j_limit'][1]%></upper>
+            <lower>  <%=linear_actuator.arm['j_limit'][0]%></lower>
+            <effort> <%=linear_actuator.arm['j_effort']%> </effort>
+        </limit>
+    </joint>  
+
+
+  
+
+</sdf>

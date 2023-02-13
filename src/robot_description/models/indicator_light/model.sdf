@@ -1,0 +1,83 @@
+<?xml version="1.0" ?>
+
+
+<sdf version='1.6'>
+  <model name="domino">
+
+    
+     <static>true</static>
+   
+    <link name ="base_light" >
+    
+       <pose frame=''>0 0 0 0 0 0</pose>
+      <inertial>
+          <pose frame=''>0 0 0.09 0 0 0</pose>
+          <mass>1.8</mass>
+          <inertia>
+              <ixx>0.108</ixx>
+              <ixy>0</ixy>
+              <ixz>0</ixz>
+              <iyy>0.108</iyy>
+              <iyz>0</iyz>
+              <izz>0.054</izz>
+          </inertia>
+      </inertial>
+        
+
+
+      <visual name="visual" >
+
+          <geometry>
+            <cylinder> <length>0.2</length> <radius> 0.1</radius></cylinder>    
+          </geometry>
+     
+        
+      
+      </visual>
+
+        <light name='lighter' type='spot'>
+           <pose frame=''>0 0 0 0 -0 0</pose>
+           <diffuse>0.5 0.5 0.5 1</diffuse>
+           <specular>0.1 0.1 0.1 1</specular>
+           <direction>0 0 -1</direction>
+           <attenuation>
+               <range>500</range>
+               <constant>0.1</constant>
+               <linear>0.01</linear>
+               <quadratic>0.001</quadratic>
+           </attenuation>
+           <cast_shadows>0</cast_shadows>
+           <spot>
+               <inner_angle>0.6</inner_angle>
+               <outer_angle>1</outer_angle>
+               <falloff>1</falloff>
+           </spot>
+     </light>
+     
+    </link>
+
+ 
+
+
+    <!-- plugin -->
+
+    <plugin name="light_control_plugin" filename="liblight_control_plugin.so"/>
+    
+
+
+  
+ 
+  
+
+ 
+   
+  
+
+ 
+ 
+
+
+ </model>
+  
+
+</sdf>

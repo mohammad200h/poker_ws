@@ -1,0 +1,156 @@
+<?xml version="1.0" ?>
+
+
+<robot name="linear_actuator">
+
+    <!-- colors -->
+
+    <gazebo reference="arm">
+         <material>Gazebo/Black</material>
+    </gazebo>
+
+    <gazebo reference="base">
+         <material>Gazebo/Orange</material>
+    </gazebo>
+
+    <link name="world"/>
+
+  <joint name="fixed" type="fixed">
+  <origin rpy="0 0 0" xyz="0 0.0 0.5" />
+    <parent link="world"/>
+    <child link="base"/>
+  </joint>
+
+ 
+   
+    <link name ="base" >
+    
+      <inertial>
+      
+          <origin xyz="0 0 0.09" rpy="0 0 0" />
+         
+          <mass value="1.8"/>
+      
+            <inertia 
+              ixx="0.108" 
+              ixy="0" 
+              ixz="0" 
+              iyy="0.108" 
+              iyz="0" 
+              izz="0.054"
+            />
+        </inertial>
+        
+
+
+      <visual >
+
+          <geometry>
+              <mesh
+         
+                  filename="package://robot_description/models/linear_actuator/STL/base.stl"
+                  scale = "0.01 0.01 0.01"
+                  
+              />
+          
+          </geometry>
+     
+        
+      
+      </visual>
+      <collision name='collision_base_link'>
+    
+          <geometry>
+            <mesh
+
+                filename="package://robot_description/models/linear_actuator/STL/base.stl"
+                scale = "0.01 0.01 0.01"
+            />
+       
+          </geometry>
+          
+      </collision>
+    </link>
+
+    <link name ="arm" >
+ 
+        <inertial>
+        <origin xyz="0 0 0.09" rpy="0 0 0" />
+            <mass value="1.8"/>
+        <inertia 
+            ixx="0.108" 
+            ixy="0" 
+            ixz="0" 
+            iyy="0.108" 
+            iyz="0" 
+            izz="0.054"
+        />
+        </inertial>
+
+        <visual>
+
+            <geometry>
+                <mesh
+                    filename="package://robot_description/models/linear_actuator/STL/arm.stl"
+                    scale = "0.01 0.01 0.01"
+                />
+           
+            </geometry>
+      
+           
+      
+        </visual>
+        <collision name='collision_arm_link'>
+    
+            <geometry>
+                <mesh
+                        filename="package://robot_description/models/linear_actuator/STL/arm.stl"
+                        scale = "0.01 0.01 0.01"
+                />
+            
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="arm_base" type="prismatic">
+        <origin rpy="0 0 0" xyz="0 0.6 0" />
+        
+        <parent link="base"/>
+        <child link ="arm"/>
+        
+        <axis xyz="0 1 0"/>
+        <limit  effort="1000" 
+                lower="0" 
+                upper="0.2" 
+                velocity="2" />
+             
+        />
+        <dynamics damping="0.1"/>
+    </joint>  
+
+
+    <!-- plugin -->
+      <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <!-- <robotNameSpace>/linear_actuator</robotNameSpace> -->
+        <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+    </plugin>
+      </gazebo>
+
+     <!-- transmission -->
+    <transmission name="lift_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="arm_base">
+          <hardwareInterface>PositionJointInterface</hardwareInterface>
+        </joint>  
+        <actuator name="lift_motor">
+          <hardwareInterface>PositionJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+ 
+ 
+
+
+</robot>

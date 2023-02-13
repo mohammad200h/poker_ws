@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -std=c++11  -shared -Wl,-soname,liblight_on_off_plugin.so -o /home/mamad/poker_ws/devel/lib/liblight_on_off_plugin.so CMakeFiles/light_on_off_plugin.dir/src/light_on_off_plugin.cc.o   -L/usr/lib/x86_64-linux-gnu/gazebo-11/plugins 

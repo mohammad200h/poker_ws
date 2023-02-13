@@ -1,0 +1,2 @@
+control:detector:interfaces:robot_description
+-DCATKIN_DEVEL_PREFIX=/home/mamad/poker_ws/devel -DCMAKE_INSTALL_PREFIX=/home/mamad/poker_ws/install -G Unix Makefiles

@@ -1,0 +1,2 @@
+set(interfaces_MESSAGE_FILES "/home/mamad/poker_ws/devel/share/interfaces/msg/MoveRobotAction.msg;/home/mamad/poker_ws/devel/share/interfaces/msg/MoveRobotActionGoal.msg;/home/mamad/poker_ws/devel/share/interfaces/msg/MoveRobotActionResult.msg;/home/mamad/poker_ws/devel/share/interfaces/msg/MoveRobotActionFeedback.msg;/home/mamad/poker_ws/devel/share/interfaces/msg/MoveRobotGoal.msg;/home/mamad/poker_ws/devel/share/interfaces/msg/MoveRobotResult.msg;/home/mamad/poker_ws/devel/share/interfaces/msg/MoveRobotFeedback.msg")
+set(interfaces_SERVICE_FILES "")

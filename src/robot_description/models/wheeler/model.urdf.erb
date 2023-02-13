@@ -1,0 +1,487 @@
+<?xml version="1.0" ?>
+
+<%
+
+    require 'matrix'
+    require 'erb'
+    require 'yaml'
+
+    def rgb256ToDecimal(rgba)
+        r = rgba[0]/256.0
+        g = rgba[1]/256.0
+        b = rgba[2]/256.0
+        #  a stand for opacity 
+        a = rgba[3]
+
+        return [r,g,b,a]
+    end
+       
+    def degreeToRadian(degrees)
+        radians = degrees * Math::PI / 180 
+        return radians
+    end
+    def a_to_s(v)#converts array to string
+      Array(v).join(" ")
+    end
+    def point_on_a_line(pointA,pointB,t)
+        direction = {
+                     'x'=>pointA[0]-pointB[0],
+                     'y'=>pointA[1]-pointB[1],
+                     'z'=>pointA[2]-pointB[2]
+                    }
+        point_on_this_line = {
+            'x'=> pointA[0]+t*direction['x'],
+            'y'=> pointA[1]+t*direction['y'],
+            'z'=> pointA[2]+t*direction['z']
+        }
+        pos = [point_on_this_line['x'],point_on_this_line['y'],point_on_this_line['z']] 
+        return pos
+    end
+
+    def modefy_mesh_path(lib_path,mesh_path)
+        mesh_path.each do |key,value|
+          mesh_path[key] =  lib_path+"/"+value
+        #   puts mesh_path[key]
+        end
+        return mesh_path
+    end
+
+    class Chassis
+        #constants
+        M_PI = 3.1415926535897931
+        attr_accessor :chassis,:mount,:mesh
+        def initialize(sim_env)
+
+            @chassis ={  # link
+                        'link_name'=>"chassis",
+                        "pose"=>[0,0,0,
+                                 0,0,0
+                                ],
+                       
+                        # inetia 
+                        'pose_i'=> [0,0,0.3,
+                                    0,0,0],                   
+                        'mass'=> 1,
+                        'ixx'=> 1.5417 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 3.467  ,'iyz'=> 0     ,'izz'=>4.742 ,
+                        # Geometry
+                        "c"=>{
+                            "type"=>"box",
+                            "size"=>[1,0.65,0.2]
+                        },
+                        "v"=>{
+                            "type"=>"mesh",
+                            "name"=>"chassis",
+                            "scale"=>[0.5,0.5,0.5]
+                        },
+                        
+                        #color
+                        "color"=> {
+                            "name"=>"DarkBlue",
+                            "value"=>[0.2, 0.2, 0.4,1]
+                        } 
+                        
+            }  
+            @mount ={  # link
+                        'link_name'=>"arm",
+                        'pose'=> [
+                            @chassis["pose"][0]+0,
+                            @chassis["pose"][1]+0.6,
+                            @chassis["pose"][2]+0,
+                            0,0,0
+                        ],
+                        # inetia 
+                        'pose_i'=> [0,0,0.09,
+                                         0,0,0],                   
+                        'mass'=> 1.8,
+                        'ixx'=> 0.108 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 0.108 ,'iyz'=> 0     ,'izz'=> 0.054 ,
+                        #joint
+                        "p_name" =>"base",
+                        "j_name" =>"arm_base",
+                        "j_type" =>'prismatic',
+                        "j_limit"=>[0,0.2],
+                        "j_effort"=>1000,
+                        "axis_xyz"=>[0,1,0],
+                        "j_velocity"=>2,
+                        "j_damping"=>0.1,
+                        #color
+                        "color"=>  [0.5,0.2,0.4,1],
+                        
+            } 
+            
+            
+            path_prefix = {
+                "gazebo"=>"package://robot_description/models/wheeler/STL/",
+                "pybullet"=>"./STL/"
+            }
+           
+            @mesh = {
+                "chassis"=>{
+                    "visual"=>"chassis.stl",
+                    "collision"=>"chassis.stl"
+                }
+               
+            }
+
+            if sim_env =="gazebo"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["gazebo"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["gazebo"]+@mesh[link]["collision"]
+                end
+         
+            elsif sim_env =="pybullet"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["pybullet"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["pybullet"]+@mesh[link]["collision"]
+                end
+            end
+           
+        
+        end
+    end
+    
+
+    class Wheel
+        #constants
+        M_PI = 3.1415926535897931
+        attr_accessor :wheel,:mesh
+        def initialize(sim_env,prefix,pose,right=FALSE)
+            mirror=1
+            if right
+                mirror=-1
+            end
+
+            @wheel ={  # link
+                        'link_name'=>prefix+"wheel",
+                        'pose'=> [
+                                pose[0]+0,
+                                pose[1]+0,
+                                pose[2]+0,
+                                0,0,0
+                            ],
+                        # inetia 
+                        'pose_i'=> [0,0,0,
+                                         0,0,0],                   
+                        'mass'=> 1,
+                        'ixx'=> 0.002526666666667 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 0.002526666666667 ,'iyz'=> 0     ,'izz'=>0.005 ,
+                        #Geometry
+                        "tire"=>{
+                            "c"=>{
+                                "origin"=>[0,mirror*0.09,0, M_PI/2,0,0],
+                                "type"=>"cylinder",
+                                "length"=>0.06,
+                                "radius"=>0.2
+                            },
+                            "v"=>{
+                                "origin"=>[0,mirror*0.09,0, M_PI/2,0,0],
+                                "type"=>"mesh",
+                                "name"=>"tire",
+                                "scale"=>[0.5,0.5,0.5],
+                                "color"=>{
+                                    "name"=>"Black",
+                                    "value"=>[0.1, 0.1, 0.1, 1],
+                                }
+                            }
+                           
+                        },
+                        "axle"=>{
+                            "c"=>{
+                                "origin"=>[0,mirror*0.03,0, M_PI/2,0,0],
+                                "type"=>"cylinder",
+                                "length"=>0.12,
+                                "radius"=>0.04
+                            },
+                            "v"=>{
+                                "origin"=>[0,mirror*0.03,0, M_PI/2,0,0],
+                                "type"=>"cylinder",
+                                "length"=>0.12,
+                                "radius"=>0.04,
+                                "color"=>{
+                                    "name"=>"Gray",
+                                    "color"=>  [0.6,0.6,0.6,1]
+                                }
+                            }
+
+                        },
+                        "hubcap"=>{
+                            "v"=>{
+                                "origin"=>[0,mirror*0.09,0, M_PI/2,0,0],
+                                "type"=>"box",
+                                "size"=>[0.01, 0.25, 0.01],
+                                "color"=>{
+                                    "name"=>"Gray",
+                                    "color"=>  [0.6,0.6,0.6,1]
+                                }
+                            }
+
+                        },
+                        #joint
+                        "p_name" =>"chassis",
+                        "j_name" =>"chasis_"+prefix+"wheel",
+                        "j_type" =>'continuous',
+                        "j_limit"=>[0,0.2],
+                        "j_effort"=>10000,
+                        "axis_xyz"=>[0,1,0,0,0,0],
+                        "j_velocity"=>1000,
+                        "j_damping"=>1,
+                        "j_friction"=>1
+
+        
+                        
+            }  
+            
+            
+            
+            path_prefix = {
+                "gazebo"=>"package://robot_description/models/wheeler/STL/",
+                "pybullet"=>"./STL/"
+            }
+           
+            @mesh = {
+                "tire"=>{
+                    "visual"=>"wheel.stl",
+                    "collision"=>"wheel.stl"
+                }
+               
+            }
+
+            if sim_env =="gazebo"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["gazebo"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["gazebo"]+@mesh[link]["collision"]
+                end
+         
+            elsif sim_env =="pybullet"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["pybullet"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["pybullet"]+@mesh[link]["collision"]
+                end
+            end
+           
+        
+        end
+    end
+
+    
+    class SkidSteer
+        #constants
+        M_PI = 3.1415926535897931
+        attr_accessor :plugin
+        def initialize(bl,br,lf,rf,ch)
+
+            @plugin ={  
+                        "updateRate"=>100.0,
+                        "robotNamespace"=>"/wheeler/",
+                        
+                        "leftFrontJoint" =>lf.wheel["j_name"],
+                        "rightFrontJoint"=>rf.wheel["j_name"],
+                        "leftRearJoint"  =>bl.wheel["j_name"],
+                        "rightRearJoint" =>br.wheel["j_name"],
+                        
+                        "wheelSeparation"=>0.65,
+                        "wheelDiameter"  =>0.4,
+                        "robotBaseFrame" => ch.chassis["line_name"],
+                        "torque"=>20,
+                        "commandTopic"=>"cmd_vel",
+                        "odometryTopic"=>"odom",
+                        "broadcastTF"=>"false"
+                        
+            }  
+           
+        
+        end
+    end
+
+
+    sim_env = "gazebo"
+    
+    chassis =  Chassis.new(sim_env)
+    pose = [-0.25,0.325, 0]
+    bl_wheel = Wheel.new(sim_env,"bl_",pose)
+    pose = [-0.25,-0.325, 0]
+    br_wheel = Wheel.new(sim_env,"br_",pose,TRUE)
+  
+    pose = [0.25,0.325, 0]
+    fl_wheel = Wheel.new(sim_env,"fl_",pose)
+    pose = [0.25,-0.325, 0]
+    fr_wheel = Wheel.new(sim_env,"fr_",pose,TRUE)
+
+    wheels = [bl_wheel,br_wheel,fl_wheel,fr_wheel]
+
+    skid_steer = SkidSteer.new(bl_wheel,br_wheel,fl_wheel,fr_wheel,chassis)
+
+
+
+      
+%>
+<robot name="wheeler">
+
+    <!-- gazebo -->
+    <gazebo>
+        <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_skid_steer_drive.so">
+            <updateRate><%=skid_steer.plugin["updateRate"]%></updateRate>
+            <robotNamespace><%=skid_steer.plugin["robotNamespace"]%></robotNamespace>
+            
+            <leftFrontJoint><%=skid_steer.plugin["leftFrontJoint"]%></leftFrontJoint>
+            <rightFrontJoint><%=skid_steer.plugin["rightFrontJoint"]%></rightFrontJoint>
+            <leftRearJoint><%=skid_steer.plugin["leftRearJoint"]%></leftRearJoint>
+            <rightRearJoint><%=skid_steer.plugin["rightRearJoint"]%></rightRearJoint>
+            
+            <wheelSeparation><%=skid_steer.plugin["wheelSeparation"]%></wheelSeparation>
+            <wheelDiameter><%=skid_steer.plugin["wheelDiameter"]%></wheelDiameter>
+            <robotBaseFrame><%=skid_steer.plugin["robotBaseFrame"]%></robotBaseFrame>
+            <torque><%=skid_steer.plugin["torque"]%></torque>
+            <commandTopic><%=skid_steer.plugin["commandTopic"]%></commandTopic>
+            <odometryTopic><%=skid_steer.plugin["odometryTopic"]%></odometryTopic>
+            <broadcastTF><%=skid_steer.plugin["broadcastTF"]%></broadcastTF>
+        </plugin>
+    </gazebo>
+    
+    <!-- main -->
+    <link name ="<%=chassis.chassis['link_name']%>" >
+    
+        <inertial>
+
+              <origin xyz="<%=a_to_s(chassis.chassis['pose_i'][0..2])%>" rpy="<%=a_to_s(chassis.chassis['pose_i'][3..-1])%>" />
+
+              <mass value="<%=chassis.chassis['mass']%>"/>
+
+                <inertia 
+                  ixx="<%=chassis.chassis['ixx']%>" 
+                  ixy="<%=chassis.chassis['ixy']%>" 
+                  ixz="<%=chassis.chassis['ixz']%>" 
+                  iyy="<%=chassis.chassis['iyy']%>" 
+                  iyz="<%=chassis.chassis['iyz']%>" 
+                  izz="<%=chassis.chassis['izz']%>"
+                />
+        </inertial>
+        
+
+
+      <visual >
+
+          <geometry>
+              
+                <mesh   filename="<%=chassis.mesh["chassis"]["visual"]%>"  
+                        scale="<%=a_to_s(chassis.chassis["v"]["scale"])%>"
+                />
+          
+          </geometry>
+     
+
+      </visual>
+
+      <collision>
+    
+          <geometry>
+            
+                <box size="<%=a_to_s(chassis.chassis['c']['size'])%>" />
+
+          </geometry>
+          
+      </collision>
+    </link>
+
+    <%wheels.each do |wheel|%>
+
+        <link name="<%=wheel.wheel["link_name"]%>">
+            <inertial>
+        
+                <origin xyz="<%=a_to_s(wheel.wheel['pose_i'][0..2])%>" rpy="<%=a_to_s(wheel.wheel['pose_i'][3..-1])%>" />
+        
+                <mass value="<%=wheel.wheel['mass']%>"/>
+        
+              <inertia 
+                ixx="<%=wheel.wheel['ixx']%>" 
+                ixy="<%=wheel.wheel['ixy']%>" 
+                ixz="<%=wheel.wheel['ixz']%>" 
+                iyy="<%=wheel.wheel['iyy']%>" 
+                iyz="<%=wheel.wheel['iyz']%>" 
+                izz="<%=wheel.wheel['izz']%>"
+              />
+            </inertial>
+
+            <!-- Tires -->
+            <collision>
+                <origin xyz="<%=a_to_s(wheel.wheel["tire"]['c']['origin'][0..2])%>" 
+                        rpy="<%=a_to_s(wheel.wheel["tire"]['c']['origin'][3..-1])%>" />
+                <geometry>
+                    <cylinder length="<%=wheel.wheel["tire"]['c']['length']%>" radius="<%=wheel.wheel["tire"]['c']['radius']%>"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="<%=a_to_s(wheel.wheel["tire"]['v']['origin'][0..2])%>" 
+                    rpy="<%=a_to_s(wheel.wheel["tire"]['v']['origin'][3..-1])%>" />
+                <geometry>
+                    
+                    <mesh   filename="<%=wheel.mesh["tire"]["visual"]%>"  
+                        scale="<%=a_to_s(wheel.wheel["tire"]["v"]["scale"])%>"
+                    />
+        
+                </geometry>
+                <material name="<%=wheel.wheel["tire"]['v']['color']['name']%>">
+                    <color rgba="<%=a_to_s(wheel.wheel["tire"]["v"]["color"]['value'])%>" />
+                </material>
+            </visual>
+
+            <!-- Axle -->
+            <collision>
+                <origin xyz="<%=a_to_s(wheel.wheel["axle"]['c']['origin'][0..2])%>" 
+                        rpy="<%=a_to_s(wheel.wheel["axle"]['c']['origin'][3..-1])%>" />
+                <geometry>
+                     <cylinder length="<%=wheel.wheel["axle"]['c']['length']%>" radius="<%=wheel.wheel["axle"]['c']['radius']%>"/>
+                </geometry>
+            </collision>
+            
+            <visual>
+                <origin xyz="<%=a_to_s(wheel.wheel["axle"]['v']['origin'][0..2])%>" 
+                        rpy="<%=a_to_s(wheel.wheel["axle"]['v']['origin'][3..-1])%>" />
+                <geometry>
+                     <cylinder length="<%=wheel.wheel["axle"]['c']['length']%>" radius="<%=wheel.wheel["axle"]['c']['radius']%>"/>
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+
+            <!-- Hubcap -->
+            <visual>
+                <origin xyz="<%=a_to_s(wheel.wheel["hubcap"]['v']['origin'][0..2])%>" 
+                        rpy="<%=a_to_s(wheel.wheel["hubcap"]['v']['origin'][3..-1])%>" />
+                <geometry>
+                    <box size="<%=a_to_s(wheel.wheel["hubcap"]['v']['size'])%>" />
+                </geometry>
+                <material name="Grey">
+                    <color rgba="0.6 0.6 0.6 1" />
+                </material>
+            </visual>
+        </link>
+
+
+        <joint name="<%=wheel.wheel["j_name"]%>" type="<%=wheel.wheel["j_type"]%>">
+        <origin xyz="<%=a_to_s(wheel.wheel['pose'][0..2])%>" 
+                rpy="<%=a_to_s(wheel.wheel['pose'][3..-1])%>" />
+            <child link="<%=wheel.wheel["link_name"]%>" />
+            <parent link="<%=wheel.wheel["p_name"]%>" />
+            <axis xyz="<%=a_to_s(wheel.wheel['axis_xyz'][0..2])%>" 
+                    rpy="<%=a_to_s(wheel.wheel['axis_xyz'][3..-1])%>" />
+            <limit effort="<%=wheel.wheel["j_effort"]%>" velocity="<%=wheel.wheel["j_velocity"]%>" />
+            <joint_properties damping="<%=wheel.wheel["j_damping"]%>" friction="<%=wheel.wheel["j_friction"]%>" />
+        </joint>
+
+    <%end%>
+    
+
+  
+
+
+  
+
+ 
+ 
+
+
+</robot>

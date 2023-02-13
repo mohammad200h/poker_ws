@@ -1,0 +1,451 @@
+<?xml version="1.0" ?>
+
+<%
+
+    require 'matrix'
+    require 'erb'
+    require 'yaml'
+
+    def rgb256ToDecimal(rgba)
+        r = rgba[0]/256.0
+        g = rgba[1]/256.0
+        b = rgba[2]/256.0
+        #  a stand for opacity 
+        a = rgba[3]
+
+        return [r,g,b,a]
+    end
+       
+    def degreeToRadian(degrees)
+        radians = degrees * Math::PI / 180 
+        return radians
+    end
+    def a_to_s(v)#converts array to string
+      Array(v).join(" ")
+    end
+    def point_on_a_line(pointA,pointB,t)
+        direction = {
+                     'x'=>pointA[0]-pointB[0],
+                     'y'=>pointA[1]-pointB[1],
+                     'z'=>pointA[2]-pointB[2]
+                    }
+        point_on_this_line = {
+            'x'=> pointA[0]+t*direction['x'],
+            'y'=> pointA[1]+t*direction['y'],
+            'z'=> pointA[2]+t*direction['z']
+        }
+        pos = [point_on_this_line['x'],point_on_this_line['y'],point_on_this_line['z']] 
+        return pos
+    end
+
+    def modefy_mesh_path(lib_path,mesh_path)
+        mesh_path.each do |key,value|
+          mesh_path[key] =  lib_path+"/"+value
+        #   puts mesh_path[key]
+        end
+        return mesh_path
+    end
+
+    class LinerarActuator
+        #constants
+        M_PI = 3.1415926535897931
+        attr_accessor :base,:arm,:mesh
+        def initialize(sim_env,pose)
+
+            @base ={  # link
+                        'link_name'=>"base",
+                        'pose'=> [
+                                pose[0]+0,
+                                pose[1]+0,
+                                pose[2]+0,
+                                0,0,0
+                            ],
+                        # inetia 
+                        'pose_i'=> [0,0,0.09,
+                                         0,0,0],                   
+                        'mass'=> 1.8,
+                        'ixx'=> 0.108 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 0.108 ,'iyz'=> 0     ,'izz'=> 0.054 ,
+                        #joint
+                     
+                        #color
+                        "color"=>  [0.1,0.6,0.9,1],
+                        
+            }  
+            @arm ={  # link
+                        'link_name'=>"arm",
+                        'pose'=> [
+                            @base["pose"][0]+0,
+                            @base["pose"][1]+0.6,
+                            @base["pose"][2]+0,
+                            0,0,0
+                        ],
+                        # inetia 
+                        'pose_i'=> [0,0,0.09,
+                                         0,0,0],                   
+                        'mass'=> 1.8,
+                        'ixx'=> 0.108 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                        'iyy'=> 0.108 ,'iyz'=> 0     ,'izz'=> 0.054 ,
+                        #joint
+                        "p_name" =>"base",
+                        "j_name" =>"arm_base",
+                        "j_type" =>'prismatic',
+                        "j_limit"=>[0,0.2],
+                        "j_effort"=>1000,
+                        "axis_xyz"=>[0,1,0],
+                        "j_velocity"=>2,
+                        "j_damping"=>0.1,
+                        #color
+                        "color"=>  [0.5,0.2,0.4,1],
+                        # transmission 
+                        "t_name"=>"linear_transmission",
+                        "t_type"=>"transmission_interface/SimpleTransmission",
+                        "hardwareInterface"=>"PositionJointInterface",
+                        "actuator_name"=>"linear_motor",
+                        "mechanicalReduction"=>1
+            } 
+
+            
+            
+            path_prefix = {
+                "gazebo"=>"package://robot_description/models/linear_actuator_with_camera/STL/",
+                "pybullet"=>"./STL/"
+            }
+           
+            @mesh = {
+                "base"=>{
+                    "visual"=>"base.stl",
+                    "collision"=>"base.stl"
+                },
+                "arm"=>{
+                    "visual"=>"arm.stl",
+                    "collision"=>"arm.stl"
+                }
+            }
+
+            if sim_env =="gazebo"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["gazebo"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["gazebo"]+@mesh[link]["collision"]
+                end
+         
+            elsif sim_env =="pybullet"
+                @mesh.each do |link,data|
+                    @mesh[link]["visual"]    = path_prefix["pybullet"]+@mesh[link]["visual"]
+                    @mesh[link]["collision"] = path_prefix["pybullet"]+@mesh[link]["collision"]
+                end
+            end
+           
+        
+        end
+    end
+
+    class Camera
+     #constants
+        M_PI = 3.1415926535897931
+        attr_accessor :base,:sensor,:mesh
+        def initialize(sim_env,attached_link)
+            @base={
+                'link_name'=>"camera_base",
+                'pose'=> [
+                    attached_link["pose"][0]+0,
+                    attached_link["pose"][1]+0,
+                    attached_link["pose"][2]+0,
+                    0,0,1.57
+                ],
+                # inetia 
+                'pose_i'=> [0,0,0,
+                            0,0,0],                   
+                'mass'=> 1e-5,
+                'ixx'=> 1e-6 ,'ixy'=> 0     ,'ixz'=> 0 ,
+                'iyy'=> 1e-6 ,'iyz'=> 0     ,'izz'=> 1e-6 ,
+                # dimentions 
+                "box"=>[0.05,0.05,0.05],
+                #joint
+                "p_name" =>attached_link["link_name"],
+                "j_name" =>"camera_base_"+attached_link["link_name"],
+                "j_type" =>'fixed',
+                "axis_xyz"=>[0,1,0],
+            
+            }
+            @sensor={
+                "gazebo_reference"=>"camera_link",
+                "sensor_type"=>"camera",
+                "sensor_name"=>"camera_one",
+                "update_rate"=>30.0,
+                "camera_name"=>"head",
+                "horizontal_fov"=>1.3962634,
+                "image"=>{
+                    "width"=>800,
+                    "height"=>800,
+                    "format"=>"R8G8B8"
+                },
+                "clip"=>{
+                    "near"=>0.02,
+                    "far"=>300
+                },
+                "noise"=>{
+                    "type"=>"gaussian",
+                    "mean"=>0.0,
+                    "stddev"=>0.007
+                },
+                # plugin name 
+                "alwaysOn"=>"true",
+                "updateRate"=>0.0,
+                "cameraName"=>"linear_actuator/camera1",
+                "imageTopicName"=>"image_raw",
+                "cameraInfoTopicName"=>"camera_info",
+                "frameName"=>"camera_link",
+                "hackBaseline"=>0.07,
+                "distortionK1"=>0.0,
+                "distortionK2"=>0.0,
+                "distortionK3"=>0.0,
+                "distortionT1"=>0.0,
+                "distortionT2"=>0.0
+
+
+
+            }
+
+           
+
+        end
+    end
+
+    sim_env = "gazebo"
+    pose = [0,0,0]
+    linear_actuator =  LinerarActuator.new(sim_env,pose)
+    camera = Camera.new(sim_env,linear_actuator.arm)
+
+
+
+      
+%>
+<robot name="linear_actuator">
+
+    <!-- colors -->
+
+    <gazebo reference="arm">
+         <material>Gazebo/Black</material>
+    </gazebo>
+
+    <gazebo reference="base">
+         <material>Gazebo/Orange</material>
+    </gazebo>
+
+    <link name="world"/>
+
+    <joint name="fixed" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0.0 0.5" />
+        <parent link="world"/>
+        <child link="base"/>
+    </joint>
+
+ 
+   
+    <link name ="<%=linear_actuator.base['link_name']%>" >
+    
+      <inertial>
+      
+          <origin xyz="<%=a_to_s(linear_actuator.base['pose_i'][0..2])%>" rpy="<%=a_to_s(linear_actuator.base['pose_i'][3..-1])%>" />
+         
+          <mass value="<%=linear_actuator.base['mass']%>"/>
+      
+            <inertia 
+              ixx="<%=linear_actuator.base['ixx']%>" 
+              ixy="<%=linear_actuator.base['ixy']%>" 
+              ixz="<%=linear_actuator.base['ixz']%>" 
+              iyy="<%=linear_actuator.base['iyy']%>" 
+              iyz="<%=linear_actuator.base['iyz']%>" 
+              izz="<%=linear_actuator.base['izz']%>"
+            />
+        </inertial>
+        
+
+
+      <visual >
+
+          <geometry>
+              <mesh
+         
+                  filename="<%=linear_actuator.mesh["base"]["visual"]%>"
+                  scale = "0.01 0.01 0.01"
+                  
+              />
+          
+          </geometry>
+     
+        
+      
+      </visual>
+      <collision name='collision_base_link'>
+    
+          <geometry>
+            <mesh
+
+                filename="<%=linear_actuator.mesh["base"]["visual"]%>"
+                scale = "0.01 0.01 0.01"
+            />
+       
+          </geometry>
+          
+      </collision>
+    </link>
+
+    <link name ="<%=linear_actuator.arm['link_name']%>" >
+ 
+        <inertial>
+        <origin xyz="<%=a_to_s(linear_actuator.arm['pose_i'][0..2])%>" rpy="<%=a_to_s(linear_actuator.arm['pose_i'][3..-1])%>" />
+            <mass value="<%=linear_actuator.arm['mass']%>"/>
+        <inertia 
+            ixx="<%=linear_actuator.arm['ixx']%>" 
+            ixy="<%=linear_actuator.arm['ixy']%>" 
+            ixz="<%=linear_actuator.arm['ixz']%>" 
+            iyy="<%=linear_actuator.arm['iyy']%>" 
+            iyz="<%=linear_actuator.arm['iyz']%>" 
+            izz="<%=linear_actuator.arm['izz']%>"
+        />
+        </inertial>
+
+        <visual>
+
+            <geometry>
+                <mesh
+                    filename="<%=linear_actuator.mesh["arm"]["visual"]%>"
+                    scale = "0.01 0.01 0.01"
+                />
+           
+            </geometry>
+      
+           
+      
+        </visual>
+        <collision name='collision_arm_link'>
+    
+            <geometry>
+                <mesh
+                        filename="<%=linear_actuator.mesh["arm"]["visual"]%>"
+                        scale = "0.01 0.01 0.01"
+                />
+            
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="<%=linear_actuator.arm['j_name']%>" type="<%=linear_actuator.arm['j_type']%>">
+        <origin rpy="<%= a_to_s(linear_actuator.arm["pose"][3..-1]) %>" xyz="<%= a_to_s(linear_actuator.arm["pose"][0..2]) %>" />
+        
+        <parent link="<%=linear_actuator.arm['p_name']%>"/>
+        <child link ="<%=linear_actuator.arm['link_name']%>"/>
+        
+        <axis xyz="<%=a_to_s(linear_actuator.arm['axis_xyz'])%>"/>
+        <limit  effort="<%=linear_actuator.arm['j_effort']%>" 
+                lower="<%=linear_actuator.arm['j_limit'][0]%>" 
+                upper="<%=linear_actuator.arm['j_limit'][1]%>" 
+                velocity="<%=linear_actuator.arm['j_velocity']%>" />
+             
+        />
+        <dynamics damping="<%=linear_actuator.arm['j_damping']%>"/>
+    </joint> 
+
+
+
+
+
+    <link name="<%=camera.base['link_name']%>">
+        <inertial>
+          <mass value="<%=camera.base['mass']%>" />
+          <origin xyz="<%=a_to_s(camera.base['pose_i'][0..2])%>" rpy="<%=a_to_s(camera.base['pose_i'][3..-1])%>"/>
+          <inertia ixx="<%=camera.base['ixx']%>" ixy="0" ixz="0" iyy="<%=camera.base['iyy']%>" iyz="0" izz="<%=camera.base['izz']%>" />
+        </inertial>
+
+        <visual>
+      
+            <geometry>
+                <box size="<%=a_to_s(camera.base['box'])%>"/>
+            </geometry>
+
+        </visual>
+
+        <collision>
+       
+            <geometry>
+                <box size="<%=a_to_s(camera.base['box'])%>"/>
+            </geometry>
+        </collision>
+
+        
+    </link>  
+
+    <joint name="<%=camera.base['j_name']%>" type="<%=camera.base['j_type']%>">
+        <axis xyz="<%=a_to_s(camera.base['axis_xyz'])%>" />
+        <origin xyz="<%=a_to_s(camera.base['pose'][0..2])%>" rpy="<%=a_to_s(camera.base['pose'][3..-1])%>"/>
+        <parent link="<%=camera.base['p_name']%>"/>
+        <child link="<%=camera.base['link_name']%>"/>
+    </joint>
+
+    <!-- plugin -->
+      <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <!-- <robotNameSpace>/linear_actuator</robotNameSpace> -->
+        <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+    </plugin>
+      </gazebo>
+
+     <!-- transmission -->
+    <transmission name="<%=linear_actuator.arm['t_name']%>">
+        <type><%=linear_actuator.arm['t_type']%></type>
+        <joint name="<%=linear_actuator.arm['j_name']%>">
+          <hardwareInterface><%=linear_actuator.arm['hardwareInterface']%></hardwareInterface>
+        </joint>  
+        <actuator name="<%=linear_actuator.arm['actuator_name']%>">
+          <hardwareInterface><%=linear_actuator.arm['hardwareInterface']%></hardwareInterface>
+          <mechanicalReduction><%=linear_actuator.arm['mechanicalReduction']%></mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <!-- camera plugin  -->
+     
+    <gazebo reference="camera_base">
+        <sensor type="camera" name="camera1">
+          <update_rate>30.0</update_rate>
+          <camera name="head">
+            <horizontal_fov>1.3962634</horizontal_fov>
+            <image>
+              <width>800</width>
+              <height>800</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.02</near>
+              <far>300</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.007</stddev>
+            </noise>
+          </camera>
+
+          <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+            <alwaysOn>true</alwaysOn>
+            <updateRate>0.0</updateRate>
+            <cameraName>camera1</cameraName>
+            <imageTopicName>image_raw</imageTopicName>
+            <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+            <frameName>camera_base</frameName>
+            <hackBaseline>0.07</hackBaseline>
+            <distortionK1>0.0</distortionK1>
+            <distortionK2>0.0</distortionK2>
+            <distortionK3>0.0</distortionK3>
+            <distortionT1>0.0</distortionT1>
+            <distortionT2>0.0</distortionT2>
+          </plugin>
+        </sensor>
+    </gazebo>
+
+    
+    
+
+
+</robot>
